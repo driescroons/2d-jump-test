@@ -1,4 +1,4 @@
-import { Box, OrbitControls } from "@react-three/drei";
+import { Box } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
 import Player from "./Player";

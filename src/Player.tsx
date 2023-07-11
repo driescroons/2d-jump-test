@@ -86,11 +86,11 @@ export default function Player(props: RigidBodyProps) {
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
 
-    const pointerDown = (e: PointerEvent) => {
+    const pointerDown = (_: PointerEvent) => {
       setMovement((m) => ({ ...m, jump: true }));
     };
 
-    const pointerUp = (e: PointerEvent) => {
+    const pointerUp = (_: PointerEvent) => {
       jumpReleased.current = true;
       setMovement((m) => ({ ...m, jump: false }));
     };
