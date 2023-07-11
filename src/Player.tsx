@@ -36,7 +36,7 @@ export default function Player(props: RigidBodyProps) {
       max: 1000,
     },
     maxJumpForce: {
-      value: 2,
+      value: 30,
       min: 0,
       max: 100,
     },
@@ -126,35 +126,11 @@ export default function Player(props: RigidBodyProps) {
       newState === "jumping" &&
       Date.now() - lastJumpedAt.current < jumpDuration
     ) {
-      if (Date.now() - lastJumpedAt.current > 100) {
-        const diff = lerp(linvel.y, 0.2, jumpReleased.current ? 0.1 : 0.8);
+      if (Date.now() - lastJumpedAt.current > 50) {
+        const diff = lerp(linvel.y, 0, jumpReleased.current ? 0.5 : 0.9);
 
         ref.current?.applyImpulse(new Vector3(0, -diff * correction, 0), true);
       }
-
-      // const diff = (Date.now() - lastJumpedAt.current) / jumpDuration;
-
-      // let jumpReduceBasedOnHold = jumpReduce;
-
-      // if (jumpReleased.current) {
-      //   jumpReduceBasedOnHold = jumpReduce * jumpHoldMultiplier;
-      // }
-
-      // console.log(jumpReduceBasedOnHold);
-      // const newY = Math.pow(2, -jumpReduceBasedOnHold * diff);
-      // // console.log(diff, newY);
-
-      // ref.current?.applyImpulse(
-      //   new Vector3(
-      //     0,
-      //     newY * maxJumpForce,
-      //     // diff > 500 / 3 ? -1 + easing(diff) : 2 - easing(diff * 2),
-      //     // newY,
-      //     // 0.3, // this is the threshold to stay afloat
-      //     0
-      //   ),
-      //   true
-      // );
     }
     setState(newState);
   });
