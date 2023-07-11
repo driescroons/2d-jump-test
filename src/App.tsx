@@ -8,7 +8,6 @@ function App() {
     <Canvas>
       <ambientLight />
       <pointLight position={[10, 10, 10]} />
-      <OrbitControls />
       <Physics debug>
         <Player position={[-3, 1, 0]} />
         <RigidBody type="fixed">
