@@ -32,11 +32,22 @@ export default function Player(props: RigidBodyProps) {
     jump: false,
   });
 
-  const { maxJumpForce, speed, jumpDuration, cameraSensitivity } = useControls({
+  const {
+    maxJumpForce,
+    speed,
+    jumpDuration,
+    cameraSensitivity,
+    cameraDistance,
+  } = useControls({
     "Reset player": button(() => {
       ref.current?.setTranslation(new Vector3(0, 5, 0), true);
       ref.current?.setLinvel(new Vector3(0, 0, 0), true);
     }),
+    cameraDistance: {
+      value: 20,
+      min: 5,
+      max: 100,
+    },
     jumpDuration: {
       value: 500,
       min: 0,
@@ -156,7 +167,7 @@ export default function Player(props: RigidBodyProps) {
 
     const newPosition = new Vector3().lerpVectors(
       cameraPosition,
-      vec3(playerPosition).add(new Vector3(0, 0, 10)),
+      vec3(playerPosition).add(new Vector3(0, 0, cameraDistance)),
       cameraSensitivity
     );
 
