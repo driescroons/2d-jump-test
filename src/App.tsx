@@ -2,6 +2,7 @@ import { Box } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
 import Player from "./Player";
+import Spike from "./Spike";
 
 function App() {
   return (
@@ -49,16 +50,20 @@ function App() {
             <meshBasicMaterial color="green" />
           </Box>
         </RigidBody>
+        <Spike position={[20, 5, 0]} />
         <RigidBody type="fixed">
           <Box args={[10, 2, 1]} position={[20, 3.5, 0]}>
             <meshBasicMaterial color="green" />
           </Box>
         </RigidBody>
+        <Spike position={[30, 8, 0]} />
         <RigidBody type="fixed">
           <Box args={[10, 2, 1]} position={[30, 6.5, 0]}>
             <meshBasicMaterial color="yellow" />
           </Box>
         </RigidBody>
+        <Spike position={[44, 11, 0]} />
+        <Spike position={[43, 11, 0]} />
         <RigidBody type="fixed">
           <Box args={[10, 2, 1]} position={[40, 9.5, 0]}>
             <meshBasicMaterial color="yellow" />
@@ -69,6 +74,7 @@ function App() {
             <meshBasicMaterial color="orange" />
           </Box>
         </RigidBody>
+        <Spike position={[36, 10.5, 0]} />
         <RigidBody type="fixed">
           <Box args={[10, 2, 1]} position={[60, 17.5, 0]}>
             <meshBasicMaterial color="orange" />
