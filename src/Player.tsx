@@ -38,6 +38,8 @@ export default function Player(props: RigidBodyProps) {
     jumpDuration,
     cameraSensitivity,
     cameraDistance,
+    maxScaleReducer,
+    minScaleReducer,
   } = useControls({
     "Reset player": button(() => {
       ref.current?.setTranslation(new Vector3(0, 5, 0), true);
@@ -68,15 +70,20 @@ export default function Player(props: RigidBodyProps) {
       min: 0,
       max: 1,
     },
+    minScaleReducer: {
+      value: 0.5,
+      min: 0,
+      max: 1,
+    },
+    maxScaleReducer: {
+      value: 0.9,
+      min: 0,
+      max: 1,
+    },
   });
 
   useEffect(() => {
-    console.log(state);
-  }, [state]);
-
-  useEffect(() => {
     const keyDown = (e: KeyboardEvent) => {
-      console.log(e.code);
       if (e.code === "KeyA") {
         setMovement((m) => ({ ...m, left: true }));
       }
@@ -116,15 +123,13 @@ export default function Player(props: RigidBodyProps) {
   }, []);
 
   useFrame((_, delta) => {
-    const correction = 1 / 60 / delta;
+    const correction = delta / (1 / 60);
     const linvel = ref.current?.linvel() ?? vec3();
 
     const horizontalMovement = Number(movement.right) - Number(movement.left);
     let newState = state;
 
     if (horizontalMovement !== 0) {
-      // const impulse = horizontalMovement * speed - linvel.x;
-      // ref.current?.applyImpulse(new Vector3(impulse, 0, 0), true);
       ref.current?.setLinvel(
         vec3({ ...linvel, x: horizontalMovement * speed }),
         true
@@ -136,7 +141,10 @@ export default function Player(props: RigidBodyProps) {
     // reenable when we have isGrounded logic
     if (linvel.y < 0) {
       newState = "falling";
-      ref.current?.applyImpulse(new Vector3(0, -speed / 10, 0), true);
+      ref.current?.applyImpulse(
+        new Vector3(0, (-speed / 10) * correction, 0),
+        true
+      );
     }
 
     if (
@@ -155,7 +163,11 @@ export default function Player(props: RigidBodyProps) {
       Date.now() - lastJumpedAt.current < jumpDuration
     ) {
       if (Date.now() - lastJumpedAt.current > 50) {
-        const diff = lerp(linvel.y, 0, jumpReleased.current ? 0.5 : 0.9);
+        const diff = lerp(
+          linvel.y,
+          0,
+          jumpReleased.current ? minScaleReducer : maxScaleReducer
+        );
 
         ref.current?.applyImpulse(new Vector3(0, -diff * correction, 0), true);
       }
