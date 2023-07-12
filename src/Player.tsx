@@ -13,7 +13,7 @@ import { Vector3 } from "three";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils.js";
 
-type PlayerState = "idle" | "running" | "jumping" | "falling";
+type PlayerState = "idle" | "running" | "jumping" | "falling" | "sliding";
 
 CameraControls.install({ THREE });
 extend({ CameraControls });
@@ -186,11 +186,15 @@ export default function Player(props: RigidBodyProps) {
 
     // reenable when we have isGrounded logic
     if (linvel.y < 0) {
-      newState = "falling";
-      ref.current?.applyImpulse(
-        new Vector3(0, (-speed / 10) * correction, 0),
-        true
-      );
+      if (!isTouchingWall.current) {
+        newState = "falling";
+        ref.current?.applyImpulse(
+          new Vector3(0, (-speed / 10) * correction, 0),
+          true
+        );
+      } else {
+        newState = "sliding";
+      }
     }
 
     if (jumpsLeft.current > 0 && movement.jump && jumpReleased.current) {
