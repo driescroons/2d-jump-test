@@ -26,6 +26,15 @@ export default function Player(props: RigidBodyProps) {
   const [state, setState] = useState<PlayerState>("idle");
   const jumpReleased = useRef(true);
 
+  const isTouchingFloor = useRef(false);
+  const isTouchingWall = useRef(false);
+  const isTouchingLeft = useRef(false);
+  const isTouchingRight = useRef(false);
+
+  const collisionMap = useRef<Record<string, { normal: Vector3; other: any }>>(
+    {}
+  );
+
   const [movement, setMovement] = useState({
     left: false,
     right: false,
@@ -126,12 +135,41 @@ export default function Player(props: RigidBodyProps) {
     const correction = delta / (1 / 60);
     const linvel = ref.current?.linvel() ?? vec3();
 
-    const horizontalMovement = Number(movement.right) - Number(movement.left);
+    let horizontalMovement = Number(movement.right) - Number(movement.left);
     let newState = state;
 
+    const collisions = Object.values(collisionMap.current);
+
+    isTouchingFloor.current = collisions.some((c) => {
+      if (c.normal.y === -1) {
+        return true;
+      }
+    });
+
+    isTouchingRight.current = collisions.some((c) => {
+      if (c.normal.x === 1) {
+        return true;
+      }
+    });
+
+    isTouchingLeft.current = collisions.some((c) => {
+      if (c.normal.x === -1) {
+        return true;
+      }
+    });
+
+    isTouchingWall.current = isTouchingLeft.current || isTouchingRight.current;
+
     if (horizontalMovement !== 0) {
+      if (
+        (horizontalMovement > 0 && isTouchingRight.current) ||
+        (horizontalMovement < 0 && isTouchingLeft.current)
+      ) {
+        horizontalMovement *= -1;
+      }
+
       ref.current?.setLinvel(
-        vec3({ ...linvel, x: horizontalMovement * speed }),
+        vec3({ ...linvel, x: horizontalMovement * speed * correction }),
         true
       );
     } else {
@@ -148,6 +186,7 @@ export default function Player(props: RigidBodyProps) {
     }
 
     if (
+      isTouchingFloor.current &&
       movement.jump &&
       lastJumpedAt.current + jumpDuration < Date.now() &&
       jumpReleased.current
@@ -200,6 +239,19 @@ export default function Player(props: RigidBodyProps) {
         {...props}
         ref={ref}
         lockRotations
+        onCollisionEnter={(e) => {
+          if ((e.other.rigidBody?.userData as any).type === "platform") {
+            collisionMap.current[e.other.collider.handle] = {
+              normal: vec3(e.manifold.normal()),
+              other: e.other,
+            };
+          }
+        }}
+        onCollisionExit={(e) => {
+          if ((e.other.rigidBody?.userData as any).type === "platform") {
+            delete collisionMap.current[e.other.collider.handle];
+          }
+        }}
         enabledTranslations={[true, true, false]}
       >
         <CapsuleCollider args={[0.25, 0.5]} density={2} />
