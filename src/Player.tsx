@@ -25,6 +25,7 @@ export default function Player(props: RigidBodyProps) {
   const lastJumpedAt = useRef(Date.now());
   const [state, setState] = useState<PlayerState>("idle");
   const jumpReleased = useRef(true);
+  const jumpsLeft = useRef(0);
 
   const isTouchingFloor = useRef(false);
   const isTouchingWall = useRef(false);
@@ -60,7 +61,7 @@ export default function Player(props: RigidBodyProps) {
       max: 100,
     },
     jumpDuration: {
-      value: 500,
+      value: 200,
       min: 0,
       max: 1000,
     },
@@ -160,6 +161,13 @@ export default function Player(props: RigidBodyProps) {
 
     isTouchingWall.current = isTouchingLeft.current || isTouchingRight.current;
 
+    if (
+      isTouchingFloor.current &&
+      lastJumpedAt.current + jumpDuration < Date.now()
+    ) {
+      jumpsLeft.current = 2;
+    }
+
     if (horizontalMovement !== 0) {
       if (
         (horizontalMovement > 0 && isTouchingRight.current) ||
@@ -169,7 +177,7 @@ export default function Player(props: RigidBodyProps) {
       }
 
       ref.current?.setLinvel(
-        vec3({ ...linvel, x: horizontalMovement * speed * correction }),
+        vec3({ ...linvel, x: horizontalMovement * speed }),
         true
       );
     } else {
@@ -185,22 +193,16 @@ export default function Player(props: RigidBodyProps) {
       );
     }
 
-    if (
-      isTouchingFloor.current &&
-      movement.jump &&
-      lastJumpedAt.current + jumpDuration < Date.now() &&
-      jumpReleased.current
-    ) {
+    if (jumpsLeft.current > 0 && movement.jump && jumpReleased.current) {
       jumpReleased.current = false;
       lastJumpedAt.current = Date.now();
       newState = "jumping";
+      ref.current?.setLinvel(vec3({ ...linvel, y: 0 }), true);
       ref.current?.applyImpulse(new Vector3(0, maxJumpForce, 0), true);
+      jumpsLeft.current--;
     }
 
-    if (
-      newState === "jumping" &&
-      Date.now() - lastJumpedAt.current < jumpDuration
-    ) {
+    if (newState === "jumping") {
       if (Date.now() - lastJumpedAt.current > 50) {
         const diff = lerp(
           linvel.y,
@@ -237,6 +239,7 @@ export default function Player(props: RigidBodyProps) {
       <cameraControls ref={controlsRef} args={[camera, gl.domElement]} />
       <RigidBody
         {...props}
+        restitution={0}
         ref={ref}
         lockRotations
         onCollisionEnter={(e) => {
