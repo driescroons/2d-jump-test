@@ -165,7 +165,7 @@ export default function Player(props: RigidBodyProps) {
         (horizontalMovement > 0 && isTouchingRight.current) ||
         (horizontalMovement < 0 && isTouchingLeft.current)
       ) {
-        horizontalMovement *= -1;
+        horizontalMovement = 0;
       }
 
       ref.current?.setLinvel(
