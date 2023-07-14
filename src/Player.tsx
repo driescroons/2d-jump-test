@@ -61,7 +61,7 @@ export default function Player(props: RigidBodyProps) {
       max: 100,
     },
     jumpDuration: {
-      value: 200,
+      value: 300,
       min: 0,
       max: 1000,
     },
@@ -94,20 +94,27 @@ export default function Player(props: RigidBodyProps) {
 
   useEffect(() => {
     const keyDown = (e: KeyboardEvent) => {
-      if (e.code === "KeyA") {
+      if (e.code === "KeyA" || e.code === "ArrowLeft") {
         setMovement((m) => ({ ...m, left: true }));
       }
-      if (e.code === "KeyD") {
+      if (e.code === "KeyD" || e.code === "ArrowRight") {
         setMovement((m) => ({ ...m, right: true }));
+      }
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        setMovement((m) => ({ ...m, jump: true }));
       }
     };
 
     const keyUp = (e: KeyboardEvent) => {
-      if (e.code === "KeyA") {
+      if (e.code === "KeyA" || e.code === "ArrowLeft") {
         setMovement((m) => ({ ...m, left: false }));
       }
-      if (e.code === "KeyD") {
+      if (e.code === "KeyD" || e.code === "ArrowRight") {
         setMovement((m) => ({ ...m, right: false }));
+      }
+      if (e.code === "Space" || e.code === "ArrowUp") {
+        jumpReleased.current = true;
+        setMovement((m) => ({ ...m, jump: false }));
       }
     };
 
@@ -129,6 +136,8 @@ export default function Player(props: RigidBodyProps) {
     return () => {
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
+      window.removeEventListener("pointerdown", pointerDown);
+      window.removeEventListener("pointerup", pointerUp);
     };
   }, []);
 
@@ -161,10 +170,8 @@ export default function Player(props: RigidBodyProps) {
 
     isTouchingWall.current = isTouchingLeft.current || isTouchingRight.current;
 
-    if (
-      isTouchingFloor.current &&
-      lastJumpedAt.current + jumpDuration < Date.now()
-    ) {
+    if (isTouchingFloor.current && newState !== "jumping") {
+      newState = "running";
       jumpsLeft.current = 2;
     }
 
@@ -185,7 +192,7 @@ export default function Player(props: RigidBodyProps) {
     }
 
     // reenable when we have isGrounded logic
-    if (linvel.y < 0) {
+    if (linvel.y < 0 && !isTouchingFloor.current) {
       if (!isTouchingWall.current) {
         newState = "falling";
         ref.current?.applyImpulse(
@@ -197,12 +204,19 @@ export default function Player(props: RigidBodyProps) {
       }
     }
 
-    if (jumpsLeft.current > 0 && movement.jump && jumpReleased.current) {
+    if (
+      jumpsLeft.current > 0 &&
+      movement.jump &&
+      jumpReleased.current &&
+      lastJumpedAt.current + jumpDuration < Date.now()
+    ) {
       jumpReleased.current = false;
       lastJumpedAt.current = Date.now();
       newState = "jumping";
       ref.current?.setLinvel(vec3({ ...linvel, y: 0 }), true);
-      ref.current?.applyImpulse(new Vector3(0, maxJumpForce, 0), true);
+
+      const rotatedImpulse = new Vector3(0, maxJumpForce, 0);
+      ref.current?.applyImpulse(rotatedImpulse, true);
       jumpsLeft.current--;
     }
 
@@ -217,6 +231,7 @@ export default function Player(props: RigidBodyProps) {
         ref.current?.applyImpulse(new Vector3(0, -diff * correction, 0), true);
       }
     }
+
     setState(newState);
 
     const cameraPosition = camera.getWorldPosition(new Vector3());
