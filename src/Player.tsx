@@ -143,11 +143,10 @@ export default function Player(props: RigidBodyProps) {
     };
   }, []);
 
-  useFrame((_, delta) => {
-    const correction = delta / (1 / 60);
+  useFrame(() => {
     const linvel = ref.current?.linvel() ?? vec3();
+    const horizontalMovement = Number(movement.right) - Number(movement.left);
 
-    let horizontalMovement = Number(movement.right) - Number(movement.left);
     let newState = state;
 
     const collisions = Object.values(collisionMap.current);
@@ -175,12 +174,10 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "running") {
       const impulse = new Vector3(0, 0, 0);
       if (horizontalMovement !== 0) {
-        impulse.x =
-          lerp(linvel.x, speed * horizontalMovement, 0.9) -
-          linvel.x * correction;
+        impulse.x = lerp(linvel.x, speed * horizontalMovement, 0.9) - linvel.x;
       } else {
         // slow down when touching floor and
-        impulse.x = lerp(linvel.x, 0, 0.3) * correction * -1;
+        impulse.x = lerp(linvel.x, 0, 0.3) * -1;
       }
 
       ref.current?.applyImpulse(impulse, true);
@@ -203,7 +200,7 @@ export default function Player(props: RigidBodyProps) {
         jumpReleased.current ? minScaleReducer : maxScaleReducer
       );
 
-      const rotatedImpulse = new Vector3(0, -diff * correction, 0);
+      const rotatedImpulse = new Vector3(0, -diff, 0);
       rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
 
       if (horizontalMovement !== 0) {
@@ -211,7 +208,6 @@ export default function Player(props: RigidBodyProps) {
           lerp(linvel.x, speed * horizontalMovement, 0.05) - linvel.x;
         rotatedImpulse.x +=
           force *
-          correction *
           Math.min((Date.now() - lastJumpedAt.current) / jumpDuration, 1);
         console.log(force);
       }
@@ -222,9 +218,7 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "falling") {
       const impulse = new Vector3();
       if (horizontalMovement !== 0) {
-        impulse.x +=
-          lerp(linvel.x, speed * horizontalMovement, 0.1) -
-          linvel.x * correction;
+        impulse.x += lerp(linvel.x, speed * horizontalMovement, 0.1) - linvel.x;
 
         ref.current?.applyImpulse(impulse, true);
       }
@@ -233,10 +227,7 @@ export default function Player(props: RigidBodyProps) {
     if (!isTouchingFloor.current && !isTouchingWall.current) {
       if (linvel.y < 0) {
         newState = "falling";
-        ref.current?.applyImpulse(
-          new Vector3(0, (-speed / 10) * correction, 0),
-          true
-        );
+        ref.current?.applyImpulse(new Vector3(0, -speed / 10, 0), true);
       } else {
         newState = "jumping";
       }
