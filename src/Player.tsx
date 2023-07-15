@@ -68,7 +68,7 @@ export default function Player(props: RigidBodyProps) {
       max: 1000,
     },
     maxJumpForce: {
-      value: 32,
+      value: 35,
       min: 0,
       max: 100,
     },
@@ -176,6 +176,7 @@ export default function Player(props: RigidBodyProps) {
     // console.log(jumpAngle.current);
 
     if (newState === "running") {
+      // try with impulse
       let newLinvelX = 0;
       if (horizontalMovement !== 0) {
         newLinvelX = horizontalMovement * speed;
@@ -250,7 +251,6 @@ export default function Player(props: RigidBodyProps) {
 
     // const jumpMoveModifier = Math.min();
 
-    // reenable when we have isGrounded logic
     if (!isTouchingFloor.current && !isTouchingWall.current) {
       if (linvel.y < 0) {
         newState = "falling";
@@ -262,9 +262,6 @@ export default function Player(props: RigidBodyProps) {
         newState = "jumping";
       }
     }
-    //  else if (linvel.y > 0) {
-    //   newState = "jumping";
-    // }
 
     if (!isTouchingFloor.current && isTouchingWall.current) {
       newState = "sliding";
@@ -306,21 +303,53 @@ export default function Player(props: RigidBodyProps) {
       jumpsLeft.current--;
     }
 
-    // console.log(newState);
-
-    if (newState === "jumping") {
-      if (Date.now() - lastJumpedAt.current > 50) {
-        const diff = lerp(
-          linvel.y,
-          0,
-          jumpReleased.current ? minScaleReducer : maxScaleReducer
+    if (newState === "sliding") {
+      // lerp to 0 y, and then let gravity do the work
+      if (linvel.y > 0) {
+        ref.current?.setLinvel(
+          vec3({ ...linvel, y: lerp(linvel.y, 0, 0.1) }),
+          true
         );
-        const rotatedImpulse = new Vector3(0, -diff * correction, 0);
-        rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
-        console.log(rotatedImpulse);
-        ref.current?.applyImpulse(rotatedImpulse, true);
       }
     }
+
+    if (newState === "jumping") {
+      // if (horizontalMovement !== 0) {
+      //   let newLinvelX = 0;
+      //   newLinvelX =
+      //     // linvel.x +
+      //     horizontalMovement *
+      //     speed *
+      //     Math.min(((Date.now() - lastJumpedAt.current) / jumpDuration) * 2, 1);
+      //   // console.log(
+      //   //   newLinvelX,
+      //   //   Math.min((Date.now() - lastJumpedAt.current) / jumpDuration, 1)
+      //   // );
+      //   // // ref.current?.applyImpulse(new Vector3(newLinvelX, 0, 0), true);
+      //   ref.current?.setLinvel(
+      //     vec3({ ...linvel, x: lerp(linvel.x, newLinvelX, 0.01) }),
+      //     true
+      //   );
+      // }
+
+      // if (Date.now() - lastJumpedAt.current > 50) {
+      const diff = lerp(
+        linvel.y,
+        0,
+        jumpReleased.current ? minScaleReducer : maxScaleReducer
+      );
+      const rotatedImpulse = new Vector3(0, -diff * correction, 0);
+      rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
+      // console.log(rotatedImpulse);
+      ref.current?.applyImpulse(rotatedImpulse, true);
+      // }
+
+      // else {
+      //   newLinvelX = lerp(linvel.x, 0, 0.5);
+      // }
+    }
+
+    // console.log(newState);
 
     setState(newState);
 
@@ -350,6 +379,7 @@ export default function Player(props: RigidBodyProps) {
         {...props}
         restitution={0}
         ref={ref}
+        ccd
         lockRotations
         onCollisionEnter={(e) => {
           if ((e.other.rigidBody?.userData as any).type === "platform") {
