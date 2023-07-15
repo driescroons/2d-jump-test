@@ -176,9 +176,8 @@ export default function Player(props: RigidBodyProps) {
       const impulse = new Vector3(0, 0, 0);
       if (horizontalMovement !== 0) {
         impulse.x =
-          (lerp(Math.abs(linvel.x), speed, 0.9) * horizontalMovement -
-            linvel.x) *
-          correction;
+          lerp(linvel.x, speed * horizontalMovement, 0.9) -
+          linvel.x * correction;
       } else {
         // slow down when touching floor and
         impulse.x = lerp(linvel.x, 0, 0.3) * correction * -1;
@@ -208,11 +207,13 @@ export default function Player(props: RigidBodyProps) {
       rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
 
       if (horizontalMovement !== 0) {
+        const force =
+          lerp(linvel.x, speed * horizontalMovement, 0.05) - linvel.x;
         rotatedImpulse.x +=
-          (lerp(Math.abs(linvel.x), speed, 0.1) * horizontalMovement -
-            linvel.x) *
+          force *
           correction *
-          Math.min((Date.now() - lastJumpedAt.current) / jumpDuration / 10, 1);
+          Math.min((Date.now() - lastJumpedAt.current) / jumpDuration, 1);
+        console.log(force);
       }
 
       ref.current?.applyImpulse(rotatedImpulse, true);
@@ -222,9 +223,8 @@ export default function Player(props: RigidBodyProps) {
       const impulse = new Vector3();
       if (horizontalMovement !== 0) {
         impulse.x +=
-          (lerp(Math.abs(linvel.x), speed, 0.1) * horizontalMovement -
-            linvel.x) *
-          correction;
+          lerp(linvel.x, speed * horizontalMovement, 0.1) -
+          linvel.x * correction;
 
         ref.current?.applyImpulse(impulse, true);
       }
