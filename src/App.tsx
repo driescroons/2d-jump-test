@@ -5,10 +5,12 @@ import Platform from "./Platform";
 import Player from "./Player";
 import Spike from "./Spike";
 
+const hideLeva = import.meta.env.MODE !== "development";
+
 function App() {
   return (
     <>
-      <Leva collapsed={true} />
+      <Leva collapsed={true} hidden={hideLeva} />
       <Canvas>
         <ambientLight />
         <pointLight position={[10, 10, 10]} />
