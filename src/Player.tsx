@@ -153,7 +153,6 @@ export default function Player(props: RigidBodyProps) {
     const collisions = Object.values(collisionMap.current);
 
     isTouchingFloor.current = collisions.some((c) => {
-      // console.log(c.normal.y);
       if (c.normal.y < -0.8) {
         return true;
       }
@@ -173,83 +172,63 @@ export default function Player(props: RigidBodyProps) {
 
     isTouchingWall.current = isTouchingLeft.current || isTouchingRight.current;
 
-    // console.log(jumpAngle.current);
-
     if (newState === "running") {
-      // try with impulse
-      let newLinvelX = 0;
+      const impulse = new Vector3(0, 0, 0);
       if (horizontalMovement !== 0) {
-        newLinvelX = horizontalMovement * speed;
+        impulse.x =
+          (lerp(Math.abs(linvel.x), speed, 0.9) * horizontalMovement -
+            linvel.x) *
+          correction;
       } else {
-        newLinvelX = lerp(linvel.x, 0, 0.5);
+        // slow down when touching floor and
+        impulse.x = lerp(linvel.x, 0, 0.3) * correction * -1;
       }
-      ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX }), true);
+
+      ref.current?.applyImpulse(impulse, true);
     }
 
-    // else if (newState === "falling" || newState === "jumping") {
-    //   if (horizontalMovement !== 0) {
-    //     // const jumpMoveModifier = Math.min(
-    //     //   ((Date.now() - lastJumpedAt.current) / jumpDuration) * 2,
-    //     //   1
-    //     // );
-    //     // newLinvelX = lerp(
-    //     //   linvel.x,
-    //     //   jumpMoveModifa * horizontalMovement * speed,
-    //     //   0.01
-    //     // );
-    //     // console.log(newLinvelX);
-    //     // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX }), true);
-    //   } else {
-    //     // newLinvelX = lerp(linvel.x, 0, 0.01);
-    //   }
-    // }
+    if (newState === "sliding") {
+      // lerp to 0 y, and then let gravity do the work
+      if (linvel.y > 0) {
+        ref.current?.setLinvel(
+          vec3({ ...linvel, y: lerp(linvel.y, 0, 0.1) }),
+          true
+        );
+      }
+    }
 
-    // ----------------------------
+    if (newState === "jumping") {
+      const diff = lerp(
+        linvel.y,
+        0,
+        jumpReleased.current ? minScaleReducer : maxScaleReducer
+      );
 
-    // if (newState !== "jumping" && newState !== "falling") {
+      const rotatedImpulse = new Vector3(0, -diff * correction, 0);
+      rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
 
-    // if (
-    //   (horizontalMovement > 0 && isTouchingRight.current) ||
-    //   (horizontalMovement < 0 && isTouchingLeft.current)
-    // ) {
-    //   horizontalMovement = 0;
-    // }
+      if (horizontalMovement !== 0) {
+        rotatedImpulse.x +=
+          (lerp(Math.abs(linvel.x), speed, 0.1) * horizontalMovement -
+            linvel.x) *
+          correction *
+          Math.min((Date.now() - lastJumpedAt.current) / jumpDuration / 10, 1);
+      }
 
-    // newLinvelX = horizontalMovement * speed;
-    // } else {
-    // if (newState === "running") {
+      ref.current?.applyImpulse(rotatedImpulse, true);
+    }
 
-    // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX * 1 }), true);
-    // }
-    // else if (
-    //   (newState === "falling" || newState === "jumping") &&
-    //   Math.abs(linvel.x) > 0.5
-    // ) {
-    //   const jumpMoveModifier = Math.min(
-    //     (Date.now() - lastJumpedAt.current) / jumpDuration,
-    //     1
-    //   );
-    //   newLinvelX = lerp(
-    //     linvel.x,
-    //     jumpAngle.current > 0 ? -speed : speed,
-    //     jumpMoveModifier
-    //     // *
-    //     // jumpMoveModifier *
-    //     // jumpMoveModifier *
-    //     // jumpMoveModifier
-    //   );
-    // }
-    // }
+    if (newState === "falling") {
+      const impulse = new Vector3();
+      if (horizontalMovement !== 0) {
+        impulse.x +=
+          (lerp(Math.abs(linvel.x), speed, 0.1) * horizontalMovement -
+            linvel.x) *
+          correction;
 
-    // console.log(newLinvelX);
-
-    // } else {
-    //   // // lerp to direction you're facing
-    //   // const newLinvelX = lerp(linvel.x, horizontalMovement * speed, 0.1);
-    //   // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX * 1 }), true);
-    // }
-
-    // const jumpMoveModifier = Math.min();
+        ref.current?.applyImpulse(impulse, true);
+      }
+    }
 
     if (!isTouchingFloor.current && !isTouchingWall.current) {
       if (linvel.y < 0) {
@@ -297,59 +276,9 @@ export default function Player(props: RigidBodyProps) {
         jumpAngle.current = 0;
       }
 
-      console.log(rotatedImpulse, isTouchingWall.current);
-
       ref.current?.applyImpulse(rotatedImpulse, true);
       jumpsLeft.current--;
     }
-
-    if (newState === "sliding") {
-      // lerp to 0 y, and then let gravity do the work
-      if (linvel.y > 0) {
-        ref.current?.setLinvel(
-          vec3({ ...linvel, y: lerp(linvel.y, 0, 0.1) }),
-          true
-        );
-      }
-    }
-
-    if (newState === "jumping") {
-      // if (horizontalMovement !== 0) {
-      //   let newLinvelX = 0;
-      //   newLinvelX =
-      //     // linvel.x +
-      //     horizontalMovement *
-      //     speed *
-      //     Math.min(((Date.now() - lastJumpedAt.current) / jumpDuration) * 2, 1);
-      //   // console.log(
-      //   //   newLinvelX,
-      //   //   Math.min((Date.now() - lastJumpedAt.current) / jumpDuration, 1)
-      //   // );
-      //   // // ref.current?.applyImpulse(new Vector3(newLinvelX, 0, 0), true);
-      //   ref.current?.setLinvel(
-      //     vec3({ ...linvel, x: lerp(linvel.x, newLinvelX, 0.01) }),
-      //     true
-      //   );
-      // }
-
-      // if (Date.now() - lastJumpedAt.current > 50) {
-      const diff = lerp(
-        linvel.y,
-        0,
-        jumpReleased.current ? minScaleReducer : maxScaleReducer
-      );
-      const rotatedImpulse = new Vector3(0, -diff * correction, 0);
-      rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
-      // console.log(rotatedImpulse);
-      ref.current?.applyImpulse(rotatedImpulse, true);
-      // }
-
-      // else {
-      //   newLinvelX = lerp(linvel.x, 0, 0.5);
-      // }
-    }
-
-    // console.log(newState);
 
     setState(newState);
 
