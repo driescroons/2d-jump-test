@@ -32,6 +32,8 @@ export default function Player(props: RigidBodyProps) {
   const isTouchingLeft = useRef(false);
   const isTouchingRight = useRef(false);
 
+  const jumpAngle = useRef(0);
+
   const collisionMap = useRef<Record<string, { normal: Vector3; other: any }>>(
     {}
   );
@@ -151,57 +153,131 @@ export default function Player(props: RigidBodyProps) {
     const collisions = Object.values(collisionMap.current);
 
     isTouchingFloor.current = collisions.some((c) => {
-      if (c.normal.y === -1) {
+      // console.log(c.normal.y);
+      if (c.normal.y < -0.8) {
         return true;
       }
     });
 
     isTouchingRight.current = collisions.some((c) => {
-      if (c.normal.x === 1) {
+      if (c.normal.x > 0.8) {
         return true;
       }
     });
 
     isTouchingLeft.current = collisions.some((c) => {
-      if (c.normal.x === -1) {
+      if (c.normal.x < -0.8) {
         return true;
       }
     });
 
     isTouchingWall.current = isTouchingLeft.current || isTouchingRight.current;
 
-    if (isTouchingFloor.current && newState !== "jumping") {
-      newState = "running";
-      jumpsLeft.current = 2;
-    }
+    // console.log(jumpAngle.current);
 
-    if (horizontalMovement !== 0) {
-      if (
-        (horizontalMovement > 0 && isTouchingRight.current) ||
-        (horizontalMovement < 0 && isTouchingLeft.current)
-      ) {
-        horizontalMovement = 0;
+    if (newState === "running") {
+      let newLinvelX = 0;
+      if (horizontalMovement !== 0) {
+        newLinvelX = horizontalMovement * speed;
+      } else {
+        newLinvelX = lerp(linvel.x, 0, 0.5);
       }
-
-      ref.current?.setLinvel(
-        vec3({ ...linvel, x: horizontalMovement * speed }),
-        true
-      );
-    } else {
-      ref.current?.setLinvel(vec3({ ...linvel, x: 0 }), true);
+      ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX }), true);
     }
+
+    // else if (newState === "falling" || newState === "jumping") {
+    //   if (horizontalMovement !== 0) {
+    //     // const jumpMoveModifier = Math.min(
+    //     //   ((Date.now() - lastJumpedAt.current) / jumpDuration) * 2,
+    //     //   1
+    //     // );
+    //     // newLinvelX = lerp(
+    //     //   linvel.x,
+    //     //   jumpMoveModifa * horizontalMovement * speed,
+    //     //   0.01
+    //     // );
+    //     // console.log(newLinvelX);
+    //     // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX }), true);
+    //   } else {
+    //     // newLinvelX = lerp(linvel.x, 0, 0.01);
+    //   }
+    // }
+
+    // ----------------------------
+
+    // if (newState !== "jumping" && newState !== "falling") {
+
+    // if (
+    //   (horizontalMovement > 0 && isTouchingRight.current) ||
+    //   (horizontalMovement < 0 && isTouchingLeft.current)
+    // ) {
+    //   horizontalMovement = 0;
+    // }
+
+    // newLinvelX = horizontalMovement * speed;
+    // } else {
+    // if (newState === "running") {
+
+    // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX * 1 }), true);
+    // }
+    // else if (
+    //   (newState === "falling" || newState === "jumping") &&
+    //   Math.abs(linvel.x) > 0.5
+    // ) {
+    //   const jumpMoveModifier = Math.min(
+    //     (Date.now() - lastJumpedAt.current) / jumpDuration,
+    //     1
+    //   );
+    //   newLinvelX = lerp(
+    //     linvel.x,
+    //     jumpAngle.current > 0 ? -speed : speed,
+    //     jumpMoveModifier
+    //     // *
+    //     // jumpMoveModifier *
+    //     // jumpMoveModifier *
+    //     // jumpMoveModifier
+    //   );
+    // }
+    // }
+
+    // console.log(newLinvelX);
+
+    // } else {
+    //   // // lerp to direction you're facing
+    //   // const newLinvelX = lerp(linvel.x, horizontalMovement * speed, 0.1);
+    //   // ref.current?.setLinvel(vec3({ ...linvel, x: newLinvelX * 1 }), true);
+    // }
+
+    // const jumpMoveModifier = Math.min();
 
     // reenable when we have isGrounded logic
-    if (linvel.y < 0 && !isTouchingFloor.current) {
-      if (!isTouchingWall.current) {
+    if (!isTouchingFloor.current && !isTouchingWall.current) {
+      if (linvel.y < 0) {
         newState = "falling";
         ref.current?.applyImpulse(
           new Vector3(0, (-speed / 10) * correction, 0),
           true
         );
       } else {
-        newState = "sliding";
+        newState = "jumping";
       }
+    }
+    //  else if (linvel.y > 0) {
+    //   newState = "jumping";
+    // }
+
+    if (!isTouchingFloor.current && isTouchingWall.current) {
+      newState = "sliding";
+      jumpsLeft.current = 2;
+    }
+
+    if (
+      isTouchingFloor.current &&
+      // we need this, otherwise after the jump it could still be that we're still collding with a platform and get put back into the running state
+      lastJumpedAt.current + jumpDuration < Date.now()
+    ) {
+      newState = "running";
+      jumpsLeft.current = 2;
     }
 
     if (
@@ -216,9 +292,21 @@ export default function Player(props: RigidBodyProps) {
       ref.current?.setLinvel(vec3({ ...linvel, y: 0 }), true);
 
       const rotatedImpulse = new Vector3(0, maxJumpForce, 0);
+
+      if (isTouchingWall.current) {
+        jumpAngle.current = isTouchingLeft.current ? -Math.PI / 5 : Math.PI / 5;
+        rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
+      } else {
+        jumpAngle.current = 0;
+      }
+
+      console.log(rotatedImpulse, isTouchingWall.current);
+
       ref.current?.applyImpulse(rotatedImpulse, true);
       jumpsLeft.current--;
     }
+
+    // console.log(newState);
 
     if (newState === "jumping") {
       if (Date.now() - lastJumpedAt.current > 50) {
@@ -227,8 +315,10 @@ export default function Player(props: RigidBodyProps) {
           0,
           jumpReleased.current ? minScaleReducer : maxScaleReducer
         );
-
-        ref.current?.applyImpulse(new Vector3(0, -diff * correction, 0), true);
+        const rotatedImpulse = new Vector3(0, -diff * correction, 0);
+        rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
+        console.log(rotatedImpulse);
+        ref.current?.applyImpulse(rotatedImpulse, true);
       }
     }
 
