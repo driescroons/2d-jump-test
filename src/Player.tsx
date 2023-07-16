@@ -216,9 +216,7 @@ export default function Player(props: RigidBodyProps) {
       if (horizontalMovement !== 0) {
         const force =
           lerp(linvel.x, speed * horizontalMovement, 0.05) - linvel.x;
-        rotatedImpulse.x +=
-          force *
-          Math.min((Date.now() - lastJumpedAt.current) / jumpDuration, 1);
+        rotatedImpulse.x += force * correction;
         console.log(force);
       }
 
@@ -228,8 +226,9 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "falling") {
       const impulse = new Vector3();
       if (horizontalMovement !== 0) {
-        impulse.x += lerp(linvel.x, speed * horizontalMovement, 0.1) - linvel.x;
-
+        impulse.x +=
+          (lerp(linvel.x, speed * horizontalMovement, 0.1) - linvel.x) *
+          correction;
         ref.current?.applyImpulse(impulse, true);
       }
     }
