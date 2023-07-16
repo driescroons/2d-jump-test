@@ -271,6 +271,7 @@ export default function Player(props: RigidBodyProps) {
       if (isTouchingWall.current && !isTouchingFloor.current) {
         jumpAngle.current = isTouchingLeft.current ? -Math.PI / 5 : Math.PI / 5;
         rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
+        ref.current?.setLinvel(vec3({ ...linvel, x: 0 }), true);
       } else {
         jumpAngle.current = 0;
       }
