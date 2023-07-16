@@ -181,10 +181,10 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "running") {
       const impulse = new Vector3(0, 0, 0);
       if (horizontalMovement !== 0) {
-        impulse.x =
-          (lerp(linvel.x, speed * horizontalMovement, movementSnappyness) -
-            linvel.x) *
-          correction;
+        const force =
+          lerp(linvel.x, speed * horizontalMovement, movementSnappyness) -
+          linvel.x;
+        impulse.x = force * correction;
       } else {
         // slow down when touching floor and
         impulse.x = lerp(linvel.x, 0, movementSnappyness) * correction * -1;
@@ -217,7 +217,6 @@ export default function Player(props: RigidBodyProps) {
         const force =
           lerp(linvel.x, speed * horizontalMovement, 0.05) - linvel.x;
         rotatedImpulse.x += force * correction;
-        console.log(force);
       }
 
       ref.current?.applyImpulse(rotatedImpulse, true);
@@ -226,9 +225,9 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "falling") {
       const impulse = new Vector3();
       if (horizontalMovement !== 0) {
-        impulse.x +=
-          (lerp(linvel.x, speed * horizontalMovement, 0.1) - linvel.x) *
-          correction;
+        const force =
+          lerp(linvel.x, speed * horizontalMovement, 0.1) - linvel.x;
+        impulse.x += force * correction;
         ref.current?.applyImpulse(impulse, true);
       }
     }
@@ -269,7 +268,7 @@ export default function Player(props: RigidBodyProps) {
 
       const rotatedImpulse = new Vector3(0, maxJumpForce, 0);
 
-      if (isTouchingWall.current) {
+      if (isTouchingWall.current && !isTouchingFloor.current) {
         jumpAngle.current = isTouchingLeft.current ? -Math.PI / 5 : Math.PI / 5;
         rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
       } else {
