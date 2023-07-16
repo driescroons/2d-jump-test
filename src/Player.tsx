@@ -52,6 +52,7 @@ export default function Player(props: RigidBodyProps) {
     cameraDistance,
     maxScaleReducer,
     minScaleReducer,
+    movementSnappyness,
   } = useControls({
     "Reset player": button(() => {
       ref.current?.setTranslation(new Vector3(0, 5, 0), true);
@@ -89,6 +90,11 @@ export default function Player(props: RigidBodyProps) {
     },
     maxScaleReducer: {
       value: 0.9,
+      min: 0,
+      max: 1,
+    },
+    movementSnappyness: {
+      value: 0.6,
       min: 0,
       max: 1,
     },
@@ -143,10 +149,11 @@ export default function Player(props: RigidBodyProps) {
     };
   }, []);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
+    const correction = delta / (1 / 60);
     const linvel = ref.current?.linvel() ?? vec3();
-    const horizontalMovement = Number(movement.right) - Number(movement.left);
 
+    const horizontalMovement = Number(movement.right) - Number(movement.left);
     let newState = state;
 
     const collisions = Object.values(collisionMap.current);
@@ -174,10 +181,13 @@ export default function Player(props: RigidBodyProps) {
     if (newState === "running") {
       const impulse = new Vector3(0, 0, 0);
       if (horizontalMovement !== 0) {
-        impulse.x = lerp(linvel.x, speed * horizontalMovement, 0.9) - linvel.x;
+        impulse.x =
+          (lerp(linvel.x, speed * horizontalMovement, movementSnappyness) -
+            linvel.x) *
+          correction;
       } else {
         // slow down when touching floor and
-        impulse.x = lerp(linvel.x, 0, 0.3) * -1;
+        impulse.x = lerp(linvel.x, 0, movementSnappyness) * correction * -1;
       }
 
       ref.current?.applyImpulse(impulse, true);
@@ -200,7 +210,7 @@ export default function Player(props: RigidBodyProps) {
         jumpReleased.current ? minScaleReducer : maxScaleReducer
       );
 
-      const rotatedImpulse = new Vector3(0, -diff, 0);
+      const rotatedImpulse = new Vector3(0, -diff * correction, 0);
       rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
 
       if (horizontalMovement !== 0) {
