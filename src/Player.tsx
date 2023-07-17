@@ -1,6 +1,7 @@
 import { extend, useFrame, useThree } from "@react-three/fiber";
 import {
   CapsuleCollider,
+  CuboidCollider,
   RapierRigidBody,
   RigidBody,
   RigidBodyProps,
@@ -25,6 +26,8 @@ export default function Player(props: RigidBodyProps) {
   const lastJumpedAt = useRef(Date.now());
   const [state, setState] = useState<PlayerState>("idle");
   const jumpReleased = useRef(true);
+  const leftSensor = useRef(false);
+  const rightSensor = useRef(false);
   const jumpsLeft = useRef(0);
 
   const isTouchingFloor = useRef(false);
@@ -262,6 +265,7 @@ export default function Player(props: RigidBodyProps) {
       jumpReleased.current &&
       lastJumpedAt.current + jumpDuration < Date.now()
     ) {
+      jumpsLeft.current--;
       jumpReleased.current = false;
       lastJumpedAt.current = Date.now();
       newState = "jumping";
@@ -269,8 +273,16 @@ export default function Player(props: RigidBodyProps) {
 
       const rotatedImpulse = new Vector3(0, maxJumpForce, 0);
 
-      if (isTouchingWall.current && !isTouchingFloor.current) {
-        jumpAngle.current = isTouchingLeft.current ? -Math.PI / 5 : Math.PI / 5;
+      if (
+        (isTouchingWall.current || leftSensor.current || rightSensor.current) &&
+        !isTouchingFloor.current
+      ) {
+        // // increase jump because of walljump
+        jumpsLeft.current = 1;
+
+        jumpAngle.current =
+          (Math.PI / 5) *
+          (isTouchingLeft.current || leftSensor.current ? -1 : 1);
         rotatedImpulse.applyAxisAngle(new Vector3(0, 0, 1), jumpAngle.current);
         ref.current?.setLinvel(vec3({ ...ref.current!.linvel(), x: 0 }), true);
       } else {
@@ -278,7 +290,6 @@ export default function Player(props: RigidBodyProps) {
       }
 
       ref.current?.applyImpulse(rotatedImpulse, true);
-      jumpsLeft.current--;
     }
 
     setState(newState);
@@ -312,22 +323,57 @@ export default function Player(props: RigidBodyProps) {
         ref={ref}
         ccd
         lockRotations
-        onCollisionEnter={(e) => {
-          if ((e.other.rigidBody?.userData as any).type === "platform") {
-            collisionMap.current[e.other.collider.handle] = {
-              normal: vec3(e.manifold.normal()),
-              other: e.other,
-            };
-          }
-        }}
-        onCollisionExit={(e) => {
-          if ((e.other.rigidBody?.userData as any).type === "platform") {
-            delete collisionMap.current[e.other.collider.handle];
-          }
-        }}
         enabledTranslations={[true, true, false]}
       >
-        <CapsuleCollider args={[0.25, 0.5]} density={2} />
+        <CapsuleCollider
+          args={[0.25, 0.5]}
+          density={2}
+          onCollisionEnter={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              collisionMap.current[e.other.collider.handle] = {
+                normal: vec3(e.manifold.normal()),
+                other: e.other,
+              };
+            }
+          }}
+          onCollisionExit={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              delete collisionMap.current[e.other.collider.handle];
+            }
+          }}
+        />
+        <CuboidCollider
+          sensor
+          args={[0.25, 0.5, 1]}
+          position={[-0.75, 0, 0]}
+          density={0}
+          onIntersectionEnter={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              leftSensor.current = true;
+            }
+          }}
+          onCollisionExit={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              leftSensor.current = false;
+            }
+          }}
+        />
+        <CuboidCollider
+          sensor
+          density={0}
+          args={[0.25, 0.5, 1]}
+          position={[0.75, 0, 0]}
+          onIntersectionEnter={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              rightSensor.current = true;
+            }
+          }}
+          onCollisionExit={(e) => {
+            if ((e.other.rigidBody?.userData as any).type === "platform") {
+              rightSensor.current = false;
+            }
+          }}
+        />
       </RigidBody>
     </>
   );
