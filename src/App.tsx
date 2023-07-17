@@ -24,7 +24,7 @@ function App() {
           {[...Array(6)].map((_, i) => (
             <Platform
               args={[2, 1, 1]}
-              position={[-5 - i * (3 + 0.5 * i), 2, 0]}
+              position={[-5 - i * (3 + 0.5 * i), 1, 0]}
               color={i >= 4 ? "orange" : i >= 2 ? "yellow" : "green"}
             />
           ))}
