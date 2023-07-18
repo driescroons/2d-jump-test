@@ -1,5 +1,6 @@
 import { extend, useFrame, useThree } from "@react-three/fiber";
 import {
+  AnyCollider,
   CapsuleCollider,
   CuboidCollider,
   RapierRigidBody,
@@ -320,6 +321,8 @@ export default function Player(props: RigidBodyProps) {
         {...props}
         restitution={0}
         friction={0}
+        // disables automatic generation of colliders. (means we can add meshes)
+        colliders={false}
         ref={ref}
         ccd
         lockRotations
@@ -342,6 +345,10 @@ export default function Player(props: RigidBodyProps) {
             }
           }}
         />
+        <mesh>
+          <capsuleGeometry args={[0.5, 0.5]} />
+          <meshBasicMaterial color="blue" />
+        </mesh>
         <CuboidCollider
           sensor
           args={[0.25, 0.5, 1]}
