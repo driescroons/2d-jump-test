@@ -1,6 +1,5 @@
 import { extend, useFrame, useThree } from "@react-three/fiber";
 import {
-  AnyCollider,
   CapsuleCollider,
   CuboidCollider,
   RapierRigidBody,
@@ -30,6 +29,9 @@ export default function Player(props: RigidBodyProps) {
   const leftSensor = useRef(false);
   const rightSensor = useRef(false);
   const jumpsLeft = useRef(0);
+  const lastTouchedFloorAt = useRef(Date.now());
+  // const canJump = useRef(true);
+  // const canDoubleJump = useRef(true);
 
   const isTouchingFloor = useRef(false);
   const isTouchingWall = useRef(false);
@@ -189,10 +191,11 @@ export default function Player(props: RigidBodyProps) {
     if (
       isTouchingFloor.current &&
       // we need this, otherwise after the jump it could still be that we're still collding with a platform and get put back into the running state
-      lastJumpedAt.current + jumpDuration < Date.now()
+      lastJumpedAt.current + jumpDuration / 2 < Date.now()
     ) {
       newState = "running";
       jumpsLeft.current = 2;
+      lastTouchedFloorAt.current = Date.now();
     }
 
     if (newState === "running") {
@@ -266,6 +269,17 @@ export default function Player(props: RigidBodyProps) {
       jumpReleased.current &&
       lastJumpedAt.current + jumpDuration < Date.now()
     ) {
+      // coyote jump
+      // if we're not touching the floor, we can only jump once
+      // only check this for the first jump
+      if (
+        jumpsLeft.current === 2 &&
+        lastTouchedFloorAt.current + 200 < Date.now()
+      ) {
+        console.log("lost jump");
+        jumpsLeft.current--;
+      }
+      // yes this should be run twice
       jumpsLeft.current--;
       jumpReleased.current = false;
       lastJumpedAt.current = Date.now();
@@ -351,7 +365,7 @@ export default function Player(props: RigidBodyProps) {
         </mesh>
         <CuboidCollider
           sensor
-          args={[0.25, 0.5, 1]}
+          args={[0.25, 0.1, 1]}
           position={[-0.75, 0, 0]}
           density={0}
           onIntersectionEnter={(e) => {
@@ -368,7 +382,7 @@ export default function Player(props: RigidBodyProps) {
         <CuboidCollider
           sensor
           density={0}
-          args={[0.25, 0.5, 1]}
+          args={[0.25, 0.1, 1]}
           position={[0.75, 0, 0]}
           onIntersectionEnter={(e) => {
             if ((e.other.rigidBody?.userData as any).type === "platform") {
