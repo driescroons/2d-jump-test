@@ -14,7 +14,7 @@ function App() {
       <Canvas>
         <ambientLight />
         <pointLight position={[10, 10, 10]} />
-        <Physics debug>
+        <Physics debug={!isProd}>
           <Player position={[0, 1, 0]} />
 
           {/* base */}
