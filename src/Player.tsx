@@ -186,6 +186,15 @@ export default function Player(props: RigidBodyProps) {
     if (!isTouchingFloor.current && isTouchingWall.current) {
       newState = "sliding";
       jumpsLeft.current = 2;
+      lastTouchedFloorAt.current = Date.now();
+    }
+
+    if (
+      !isTouchingFloor.current &&
+      (leftSensor.current || rightSensor.current)
+    ) {
+      jumpsLeft.current = 2;
+      lastTouchedFloorAt.current = Date.now();
     }
 
     if (
@@ -276,7 +285,6 @@ export default function Player(props: RigidBodyProps) {
         jumpsLeft.current === 2 &&
         lastTouchedFloorAt.current + 200 < Date.now()
       ) {
-        console.log("lost jump");
         jumpsLeft.current--;
       }
       // yes this should be run twice
